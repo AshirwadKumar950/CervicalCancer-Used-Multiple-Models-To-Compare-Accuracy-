@@ -1,0 +1,221 @@
+# Import all the libraries
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# make data frame
+cancer_df=pd.read_csv('risk_factors_cervical_cancer.csv')
+
+# get data frame info
+# it will show us data types which are integer and which are object
+cancer_df.info()
+
+# gives some statistical data frame
+cancer_df.describe()
+
+# notice question marks indicating missing values it may be because
+# many patients does not want to reveal some pf their data
+cancer_df
+
+# replace ? with NaN
+# in numpy we can replace ? with nan only
+cancer_df = cancer_df.replace('?',np.NaN)
+cancer_df
+
+# isnull() check if there is any attribute which
+# has null in it if there is it will return true else false
+cancer_df.isnull()
+
+# plot heatmap
+# it will visually show how many null elements are present in the dataset
+#plt.figure(figsize=(10,10))
+sns.heatmap(cancer_df.isnull(),cmap='coolwarm')
+
+# check info
+# cancer_df.info()
+cancer_df['STDs: Time since first diagnosis'] = pd.NA
+cancer_df['STDs: Time since last diagnosis'] = pd.NA
+cancer_df
+
+# first we have to drop two columns here 1.STDs Time since first diagnose 2.Time since last diagnose have more than 80% missing
+# values so we will drop them
+cancer_df = cancer_df.drop(columns=['STDs: Time since first diagnosis','STDs: Time since last diagnosis'])
+cancer_df
+
+# since most of the columns are of object type ,we are not able to get statistic of the data frame
+# Convert them to numeric type
+cancer_df = cancer_df.apply(pd.to_numeric,errors='coerce')
+cancer_df.info()
+
+# get the statistic of the data frame
+cancer_df.describe()
+
+cancer_df.median()
+
+# replace null with median just to fill out the missing values
+# you can also fill with minimum or maximum or any other value i am using mean value here to fill the null values
+cancer_df = cancer_df.fillna(cancer_df.median())
+cancer_df
+
+# plot the heatmap
+sns.heatmap(cancer_df.isnull())
+
+for col in cancer_df.columns:
+    if cancer_df[col].dtype == 'object':
+       cancer_df[col] = pd.to_numeric(cancer_df[col], errors='coerce')
+
+# get the correlation metrix
+corr_matrix = cancer_df.corr()
+corr_matrix
+
+# plot the heatmap for the correlation matrix
+plt.figure(figsize = (30,30))
+sns.heatmap(corr_matrix, annot =True)
+plt.show()
+
+# or may be show a histogram to see the range
+cancer_df.hist(figsize=(30,30))
+plt.show()
+
+#preparing the data before training it
+cancer_df
+
+target_df = cancer_df['Biopsy']         #it extracts the column biopsy from the data frame and assigns it in target_df
+input_df = cancer_df.drop(columns= ['Biopsy']) # it will contain all other columns except biopsy
+
+target_df.shape
+
+input_df.shape
+
+x = np.array(input_df).astype('float32')
+y = np.array(target_df).astype('float32')
+
+x.shape
+
+y.shape
+
+#scaling the data before feeding the model
+from sklearn.preprocessing import StandardScaler
+scaler = StandardScaler()
+x = scaler.fit_transform(x)
+
+print(x)
+
+from sklearn.model_selection import train_test_split
+x_train,x_test,y_train,y_test = train_test_split(x,y,test_size=0.1)
+
+#sklearn version 1.2.2 and xgboost version 1.7.6 should be used together they are compactible for each other
+!pip install scikit-learn==1.2.2 xgboost==1.7.6
+
+#for xgboost algorithm
+from xgboost import XGBClassifier
+
+model = XGBClassifier(max_depth=10, n_estimators=100, learning_rate=0.1)
+model.fit(x_train,y_train)
+
+
+#for XGBoost algorithm
+result_train = model.score(x_train,y_train)
+result_train
+
+#predict the score of the trained model using the testing dataset
+result_test = model.score(x_test,y_test)
+result_test
+
+#make predictions on the testing data
+y_predict = model.predict(x_test)
+y_predict
+
+from sklearn.metrics import confusion_matrix ,classification_report
+print(classification_report(y_test,y_predict))
+
+cm = confusion_matrix(y_test,y_predict)
+sns.heatmap(cm, annot=True)
+
+#for knn Model
+# Fill NaN values with the median (or mean)
+x_train = np.nan_to_num(x_train, nan=np.nanmedian(x_train))
+x_test = np.nan_to_num(x_test, nan=np.nanmedian(x_test))
+
+#from KNN import KNeighboursClassifier
+from sklearn.neighbors import KNeighborsClassifier
+model = KNeighborsClassifier(n_neighbors=5)  # You can adjust `n_neighbors`
+model.fit(x_train,y_train)
+
+#for KNN model
+result_train = model.score(x_train, y_train)
+print(result_train)
+
+# Evaluate testing accuracy
+result_test = model.score(x_test, y_test)
+print(result_test)
+
+# Make predictions on the testing data
+y_predict = model.predict(x_test)
+y_predict
+
+#For KNN algorithm
+from sklearn.metrics import confusion_matrix, classification_report
+print(classification_report(y_test, y_predict))
+
+# For KNN algorithm Plot confusion matrix
+cm = confusion_matrix(y_test, y_predict)
+sns.heatmap(cm, annot=True,cmap='coolwarm')
+
+#using logistic regression
+from sklearn.linear_model import LogisticRegression
+
+#Initialize Logistic Regression Model
+model = LogisticRegression(max_iter=1000)
+
+# Fit the model on the training data
+model.fit(x_train, y_train)
+
+# Evaluate the model on training data
+result_train = model.score(x_train, y_train)
+print(result_train)
+
+# Predict the accuracy on testing data
+result_test = model.score(x_test, y_test)
+print(result_test)
+
+# Make predictions on the testing data
+y_predict = model.predict(x_test)
+y_predict
+
+# Classification report
+print(classification_report(y_test, y_predict))
+
+# Confusion matrix
+cm = confusion_matrix(y_test, y_predict)
+sns.heatmap(cm, annot=True, cmap='Blues')
+
+#using random forest algorithm
+from sklearn.ensemble import RandomForestClassifier
+
+# Initialize Random Forest Model
+model = RandomForestClassifier(n_estimators=100, max_depth=10)
+
+# Fit the model on the training data
+model.fit(x_train, y_train)
+
+# Evaluate the model on training data
+result_train = model.score(x_train, y_train)
+print(result_train)
+
+# Predict the accuracy on testing data
+result_test = model.score(x_test, y_test)
+print(result_test)
+
+# Make predictions on the testing data
+y_predict = model.predict(x_test)
+y_predict
+
+#print classification report
+print(classification_report(y_test, y_predict))
+
+# Confusion matrix
+cm = confusion_matrix(y_test, y_predict)
+sns.heatmap(cm, annot=True, cmap='Greens')
+
